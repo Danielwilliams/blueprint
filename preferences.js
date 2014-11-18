@@ -33,7 +33,7 @@ define(function (require, exports) {
 		defaultPrefValues = {
 			generelopenOnStart : true,
 			generelautoChangeTab : 'outline',
-			outlinedefaultSorting : 'asc',
+			outlinedefaultSorting : 'none',
 			outlineunknownTypeChangeTab : true,
 			outlinefontSize : '19',
 			outlinejsexperimentalParser : false,
@@ -67,7 +67,7 @@ define(function (require, exports) {
 						type : 'select',
 						description : 'default sorting',
 						values : ['none', 'asc'],
-						value : 'asc'
+						value : 'none'
 					},
 					unknownTypeChangeTab : {
 						type : 'boolean',
@@ -117,16 +117,11 @@ define(function (require, exports) {
 
 	exports.init = function () {
 		$ui = $('<ul class="perf-list"></ul>');
-		//@todo remove sometime
-//		localStorage.removeItem("blueprintPrefs");
+		//@todo remove sometime 0.7
 		localStorage.removeItem("blueprintPreferences");
 
 		loadPrefs();
-		//
-		if (PREFS.generelopenOnStart === true) {
-			PREFS.generelopenOnStart = 'right';
-		}
-		//check first init
+		// Check first init before using the preferences object.
 		if (PREFS === null) {
 			PREFS = defaultPrefValues;
 			savePrefs();
@@ -134,7 +129,13 @@ define(function (require, exports) {
 			PREFS = $.extend({}, defaultPrefValues, PREFS);
 			savePrefs();
 		}
+		//@todo remove sometime 0.8
+		if (PREFS.generelopenOnStart === true) {
+			PREFS.generelopenOnStart = 'right';
+			savePrefs();
+		}
 	};
+
 	/*
 	 *	@param {string} url relative 2 PREFS
 	 */
@@ -142,38 +143,10 @@ define(function (require, exports) {
 		var key = url.replace(/\//g, '');
 
 		if (key in PREFS) {
-			//validate value with
 			return PREFS[key];
 		} else {
-			console.error('key dosen\'t exists!');
+			console.error("key doesn't exist!");
 		}
-//		var parts = url.split('/'),
-//			index = 0,
-//			result = PREFS;
-//
-//		for (; index<parts.length; index++) {
-//			if (!('type' in result)) {
-//				if (parts[index] in result) {
-//					result = result[ parts[index] ];
-//				} else {
-//					//console.log('key not exists1: ' + url);
-//					return false;
-//				}
-//			} else if (result.type === 'category') {
-//
-//				if (parts[index] in result.childs) {
-//					result = result.childs[ parts[index] ];
-//				} else {
-//					//console.log('key not exists2: ' + parts[index], result.childs);
-//					return false;
-//				}
-//			}
-//		}
-//		if (result.type === 'category' || result.type === 'root') {
-//			//console.log('key not exists3: ' + url, result);
-//			return false;
-//		}
-//		return result.value;
 	};
 	/*
 	 *	@param {string} url relative 2 PREFS
@@ -191,24 +164,8 @@ define(function (require, exports) {
 				changeCallBacks[i].call(null, url, value);
 			}
 		} else {
-			console.error('key dosen\'t exists!');
+			console.error("key doesn't exist!");
 		}
-//		var parts = url.split('/'),
-//			i = 0,
-//			chain = PREFS;
-//		for (; i<parts.length; i++) {
-//			if (!('type' in chain)) {
-//				chain = chain[ parts[i] ];
-//			} else if (chain.type === 'category') {
-//				chain = chain.childs[ parts[i] ];
-//			}
-//		}
-//		chain.value = value;
-//
-//		for(i=0;i<changeCallBacks.length;i++) {
-//			changeCallBacks[i].call(null, url, value);
-//		}
-//		savePrefs();
 	};
 	exports.openUI = function () {
 		if (uiOpenState === true) { return; }
@@ -284,7 +241,6 @@ define(function (require, exports) {
 		}
 
 		//create dialog
-		//		Dialogs.showModalDialogUsingTemplate($ui);
 		uiDialog = Dialogs.showModalDialog('blueprint-prefs-dialog',
 							   	'Preferences',
 							   	$('<div></div>').append($ui).html(),
