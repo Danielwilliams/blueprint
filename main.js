@@ -1,27 +1,4 @@
 /*
-outliner
--html:
-	-umschalten zwischen id's, tags, classes, attr
-	-context menu / (zoom oder ausschnit anzeigen)
--css querys
--colapse/open all
-//-filter /prototypes,anonym,
---prefs:
--colors
-
-
-minimap
--aware inline editor/view (codeMirror->events)
-
-next version features
-alle extensions können ein fenster mit ihrer id öffnen
-darin sieht man dann welche neuen features schon implementiert sind
-und ein voting für neue features.
-und man kann ideen an den server senden
-der extension autor segnet die ab oder nich und wenn ja stehen sie bei dem voting
--changelog/rating/counts:running, installed(realy)/downloads/comments/buggreporting/issues
-
-
  * The MIT License (MIT)
  *
  * Copyright (c) 2014 Stefan Schulz
@@ -49,7 +26,7 @@ der extension autor segnet die ab oder nich und wenn ja stehen sie bei dem votin
 define(function (require, exports, module) {
     "use strict";
 
-	//first of all init preferences 2 ensure that at load all perfs are exists
+	//first of all init preferences 2 ensure that at load, all perfs are exists
 	var prefs = require('./preferences');
 	prefs.init();
 
@@ -285,9 +262,6 @@ define(function (require, exports, module) {
 
 		$content.append($outlineRoot);
 		$content.append($minimapRoot);
-
-		//DropdownButton();
-
 
 		$('.button.prefs', $footer).click(function () {
 			if (prefs.isUiOpen()) {

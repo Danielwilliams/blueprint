@@ -26,6 +26,7 @@
 define(function (require, exports) {
     "use strict";
     var EditorManager   = brackets.getModule("editor/EditorManager"),
+    	Editor   = brackets.getModule("editor/Editor"),
 		prefs = require('./preferences'),
 		MAIN = require('./main'),
 		$root,
@@ -61,7 +62,7 @@ define(function (require, exports) {
 
 			//create data attribs
 			for(name in node) {
-				if (name === 'line' || name === 'line') { continue; }
+				if (name === 'line' || name === 'line' || name[0] === '_') { continue; }
 				if (typeof node[name] === 'string' || typeof node[name] === 'number') {
 					dataDash += 'data-' + name + '="' + node[name] + '" ';
 				} else if (node[name] instanceof Array) {
@@ -162,12 +163,13 @@ define(function (require, exports) {
 	}
 	/** registers an button on the bottom of the outline viewer
 	 *	@param {string} outlineName
-	 *	@param {string} name used as class
+	 *	@param {string} name used in name attribute
 	 *	@param {function} callBack function
 	 */
 	function registerButton(outlineName, buttonName, callBack) {
 		//build html, add click event
-		var $button = $('<span class="button ' + buttonName + '"></span>');
+		var $button = $('<span class="button ' + outlineName + '" name="' + buttonName + '"> A </span>');
+		$button.hide();
 		$footerOutline.append($button);
 		$button.click(function(e) {
 			callBack(e);
@@ -181,7 +183,7 @@ define(function (require, exports) {
 
 		$parent.append('<div>outliner</div>');
 
-		$footerOutline = $('<div class="outline-buttons"><span class="button sort" title="Switch sort mode"></span></div>');
+		$footerOutline = $('<div class="outline-buttons"><span class="button" name="sort" title="Switch sort mode"></span></div>');
 		$content.parent().children('.footer').append($footerOutline);
 
 		//events
@@ -205,7 +207,7 @@ define(function (require, exports) {
 			$parent.children('.childs').toggle();
 		});
 
-      $('.sort', $footerOutline).click(function () {
+      $('.button[name="sort"]', $footerOutline).click(function () {
 			if (sortMode === 'none') {
 				sort($content, 'asc');
 			} else if (sortMode === 'asc') {
@@ -222,6 +224,7 @@ define(function (require, exports) {
 						return Editor.Editor.getTabSize(_document.file._path);
 					}
 				},
+				forceDraw : forceUpdate,
 				setEditorLine : setEditorLine,
 				render : updateTree,
 				registerButton : function (buttonName, callBack) {
@@ -275,6 +278,11 @@ define(function (require, exports) {
 	}
 	function updateOutlineRootType(type) {
 		$root.attr('type', type);
+		//show right buttons
+		$('.button', $footerOutline).hide();
+		$('.button[name="sort"]', $footerOutline).show();
+		$('.button.' + type, $footerOutline).show();
+
 	}
 	function forceUpdate() {
 		var mode = _document.getLanguage().getMode(),

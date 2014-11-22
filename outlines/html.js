@@ -29,6 +29,7 @@ define(function (require, exports, modul) {
 		EditorManager   = brackets.getModule("editor/EditorManager"),
 		prefs			= require('../preferences'),
 		dataTree		= [],
+		viewMode		= 'tree',
 		currentEditorTabSize = 4;
 
 	/**
@@ -42,13 +43,14 @@ define(function (require, exports, modul) {
 			state = CodeMirror.startState(mode),
 			stream,
 			lastBracket,
-			parentList = [],
-			rootElement = {childs : [] },
+			rootElement = {childs : [], name : 'root' },
 			currElement = rootElement,
+			parentList = [rootElement],
 			isAttr  = false,
 			charNumber = 0,
 			openTagCharPos = 0,
-			inOpenTag = false;
+			inOpenTag = false,
+			callback;
 
 		var isVoidElement = function(tagName) {
 			var voidTags = [
@@ -63,8 +65,17 @@ define(function (require, exports, modul) {
 			stream.start = stream.pos;
 			return curr;
 		};
-		//@todo implement callbackForSelectorList | generate a list with selectors
-		var callbackForSelectorList = function(token, lineNumber, style) {
+		var push = function(element) {
+			currElement.childs.push(element);
+			parentList.push(element);
+			currElement = element;
+		};
+		var pop = function() {
+			if (parentList.length < 2) { return; }
+			parentList.pop();
+			currElement = parentList[parentList.length-1];
+		};
+		var essentialCallback = function(token, lineNumber, style) {
 			switch(style) {
 				case 'tag bracket':
 					lastBracket = token;
@@ -75,23 +86,27 @@ define(function (require, exports, modul) {
 
 						if (inOpenTag) {
 							inOpenTag = false;
+
 							if (!currElement) { break; }
+							if (currElement.attr._length === 0) { break; }
+
+							var weight = 0;
 							if ('id' in currElement.attr) {
 								attribStr += ' <span class="id">#' + currElement.attr.id + '</span>';
 								nameStr += ' #' + currElement.attr.id;
+								weight += 2;
 							}
 							if ('class' in currElement.attr) {
 								attribStr += ' <span class="class">.' + currElement.attr.class + '</span>';
 								nameStr += ' .' + currElement.attr.class;
+								weight += 1;
 							}
-							currElement.line = '<span class="tag">' + currElement.name + '</span>' + attribStr;
-							var tagName = currElement.name;
-							currElement.name = currElement.name + nameStr;
 
-							if(isVoidElement(tagName)) {
-								parentList.pop();
-								currElement = parentList[parentList.length-1];
-							}
+							if (weight < 1) { break; }
+
+							currElement.line = '<span class="tag">' + currElement.name + '</span>' + attribStr;
+							currElement.name = currElement.name + nameStr;
+							rootElement.childs.push(currElement);
 						}
 						isAttr = false;
 					} else if (token.search('<') !== -1) {
@@ -108,15 +123,11 @@ define(function (require, exports, modul) {
 							startline : lineNumber,
 							startchar : openTagCharPos,
 							childs : [],
-							attr : [],
-						}
-						currElement.childs.push(element);
-						parentList.push(element);
+							attr : {
+								_length : 0
+							},
+						};
 						currElement = element;
-					} else if (lastBracket === '</') {
-						//close tag
-						parentList.pop();
-						currElement = parentList[parentList.length-1];
 					}
 					break;
 				case 'attribute':
@@ -126,12 +137,13 @@ define(function (require, exports, modul) {
 					if (isAttr !== false) {
 						//add attribute
 						currElement.attr[isAttr] = token.replace(/["']/g, '');
+						currElement.attr._length++;
 						isAttr = false;
 					}
 					break;
 			}
 		}
-		var callback = function(token, lineNumber, style) {
+		var treeCallback = function(token, lineNumber, style) {
 			switch(style) {
 				case 'tag bracket':
 					lastBracket = token;
@@ -176,7 +188,7 @@ define(function (require, exports, modul) {
 							startchar : openTagCharPos,
 							childs : [],
 							attr : [],
-						}
+						};
 						currElement.childs.push(element);
 						parentList.push(element);
 						currElement = element;
@@ -198,6 +210,15 @@ define(function (require, exports, modul) {
 					break;
 			}
 		};
+
+		switch (viewMode) {
+			case 'tree':
+				callback = treeCallback;
+				break;
+			case 'essential':
+				callback = essentialCallback;
+				break;
+		}
 		for (var i = 0, e = lines.length; i < e; ++i) {
 			stream = new CodeMirror.StringStream(lines[i]);
 			charNumber = 0;
@@ -220,12 +241,16 @@ define(function (require, exports, modul) {
 	exports.init = function (outliner) {
 		//set dom
 		//register buttons
-		outliner.registerButton('class/button-name', function() {
-			//onclick
+		outliner.registerButton('switchMode', function(e) {
+			if (viewMode === 'tree') {
+				viewMode = 'essential';
+			} else {
+				viewMode = 'tree';
+			}
+			outliner.forceDraw();
 		});
 	};
 	exports.update = function (code, cb) {
-		console.log(EditorManager.getCurrentFullEditor())
 		//currentEditorTabSize = EditorManager.getCurrentFullEditor().getTabSize();
 		dataTree = updateHtml(code, 'text/x-brackets-html');
 		console.log(dataTree)
@@ -233,3 +258,71 @@ define(function (require, exports, modul) {
 	};
 
 });
+//		var essentialCallback = function(token, lineNumber, style) {
+//			switch(style) {
+//				case 'tag bracket':
+//					lastBracket = token;
+//					if (token.search('>') !== -1) {
+//						//close tag
+//						var attribStr = '',
+//							nameStr = '';
+//
+//						if (inOpenTag) {
+//							inOpenTag = false;
+//
+//							if (!currElement) { break; }
+//							if (currElement.attr._length === 0) { break; }
+//
+//							var weight = 0;
+//							if ('id' in currElement.attr) {
+//								attribStr += ' <span class="id">#' + currElement.attr.id + '</span>';
+//								nameStr += ' #' + currElement.attr.id;
+//								weight += 2;
+//							}
+//							if ('class' in currElement.attr) {
+//								attribStr += ' <span class="class">.' + currElement.attr.class + '</span>';
+//								nameStr += ' .' + currElement.attr.class;
+//								weight += 1;
+//							}
+//
+//							if (weight < 1) { break; }
+//
+//							currElement.line = '<span class="tag">' + currElement.name + '</span>' + attribStr;
+//							currElement.name = currElement.name + nameStr;
+//							rootElement.childs.push(currElement);
+//						}
+//						isAttr = false;
+//					} else if (token.search('<') !== -1) {
+//						openTagCharPos = charNumber -(token.length);
+//					}
+//					break;
+//				case 'tag':
+//					if (lastBracket === '<') {
+//						//open tag
+//						inOpenTag = true;
+//						var element = {
+//							name : token,
+//							line : '',
+//							startline : lineNumber,
+//							startchar : openTagCharPos,
+//							childs : [],
+//							attr : {
+//								_length : 0
+//							},
+//						};
+//						currElement = element;
+//					}
+//					break;
+//				case 'attribute':
+//					isAttr = token;
+//					break;
+//				case 'string':
+//					if (isAttr !== false) {
+//						//add attribute
+//						currElement.attr[isAttr] = token.replace(/["']/g, '');
+//						currElement.attr._length++;
+//						isAttr = false;
+//					}
+//					break;
+//			}
+//		}

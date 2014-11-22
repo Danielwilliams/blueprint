@@ -261,9 +261,14 @@ body>#blueprint-outliner .headline .top-bottons .button[name="window"],
 #blueprint-outliner .footer .button.prefs {
 	background-image: url("./media/settings.svg");
 }
-#blueprint-outliner .footer .button.sort {
+#blueprint-outliner .footer .outline-buttons .button[name="sort"] {
 	background-image: url('./media/az.png');
 }
+#blueprint-outliner .footer .outline-buttons .button[name=""] {
+
+}
+
+
 #blueprint-outliner .outline-root {
     list-style: none;
 	padding: 3px;
